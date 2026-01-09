@@ -1,0 +1,92 @@
+# ========================
+# Build directories
+# ========================
+build/
+_build/
+out/
+cmake-build-*/
+
+# ========================
+# CMake generated files
+# ========================
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+cmake_install.cmake
+CTestTestfile.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+_Deps/
+
+# ========================
+# Compiled binaries and objects
+# ========================
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.ilk
+*.pdb
+*.manifest
+
+# Executables (you can also list specific names like 'gemm_demo')
+# But better to ignore all in build/ instead of here
+
+# ========================
+# Editors and IDEs
+# ========================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/c_cpp_properties.json
+
+# Vim
+*.swp
+*.swo
+*～
+
+# Emacs
+\#*
+.\#*
+
+# CLion / IntelliJ
+.idea/
+
+# Visual Studio
+*.suo
+*.user
+*.vcxproj*
+!*.vcxproj   # 如果你确实要提交工程文件，可取消注释上一行并保留此行
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# ========================
+# Logs and temporary files
+# ========================
+*.log
+*.tmp
+.DS_Store        # macOS
+Thumbs.db        # Windows
+
+# ========================
+# Sanitizers / Debugging
+# ========================
+asan_*.log
+tsan_*.log
+ubsan_*.log
+
+# ========================
+# Optional: Ignore data or output files (customize as needed)
+# ========================
+# data/
+# results/
+# *.bin
+# *.dat
