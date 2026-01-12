@@ -1,29 +1,40 @@
-# CMakeLists.txt
-cmake_minimum_required(VERSION 3.16)
-project(GEMMDemo LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.15)
 
-# 设置 C++ 标准
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR riscv64)
+
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
+project(RVV_Project CXX)
+
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# 强制使用 Clang++
-find_program(CLANGXX clang++)
-if(NOT CLANGXX)
-    message(FATAL_ERROR "Clang++ not found! Please install clang.")
-endif()
-set(CMAKE_CXX_COMPILER ${CLANGXX})
+# --- 关键修复路径 ---
+set(RISCV_TOOLCHAIN "/opt/riscv")
+set(RISCV_TARGET "riscv64-unknown-linux-gnu")
+# 根据你的 find 结果，这是正确的 sysroot 路径
+set(RISCV_SYSROOT "${RISCV_TOOLCHAIN}/sysroot")
 
-# 可选：启用优化和调试信息
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
-
-# 添加可执行文件
-add_executable(gemm_demo gemm.cpp)
-
-# 可选：添加编译选项（例如开启向量化提示）
-target_compile_options(gemm_demo PRIVATE
-    $<$<CONFIG:RELEASE>:-O3 -march=native -DNDEBUG>
-    $<$<CONFIG:DEBUG>:-O0 -g>
+set(RVV_FLAGS 
+    "--target=${RISCV_TARGET}"
+    "--gcc-toolchain=${RISCV_TOOLCHAIN}"
+    "--sysroot=${RISCV_SYSROOT}"
+    "-march=rv64gcv"
+    "-mabi=lp64d"
 )
+
+add_compile_options(${RVV_FLAGS} -O3 -Wall)
+
+# 显式指定库搜索路径，确保链接器能看到 /usr/lib
+add_link_options(
+    ${RVV_FLAGS}
+    "-fuse-ld=lld"
+    "-L${RISCV_SYSROOT}/usr/lib"
+    "-L${RISCV_SYSROOT}/lib"
+    "-Wl,-rpath-link,${RISCV_SYSROOT}/usr/lib"
+    "-Wl,-rpath-link,${RISCV_SYSROOT}/lib"
+)
+
+add_executable(rvv_test main.cpp)
+target_link_libraries(rvv_test stdc++ m c)
