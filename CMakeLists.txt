@@ -1,40 +1,17 @@
-cmake_minimum_required(VERSION 3.15)
-
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR riscv64)
-
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-
-project(RVV_Project CXX)
+cmake_minimum_required(VERSION 3.10)
+project(riscv_flash_attn)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# --- 关键修复路径 ---
-set(RISCV_TOOLCHAIN "/opt/riscv")
-set(RISCV_TARGET "riscv64-unknown-linux-gnu")
-# 根据你的 find 结果，这是正确的 sysroot 路径
-set(RISCV_SYSROOT "${RISCV_TOOLCHAIN}/sysroot")
+# 开启 OpenMP
+find_package(OpenMP REQUIRED)
 
-set(RVV_FLAGS 
-    "--target=${RISCV_TARGET}"
-    "--gcc-toolchain=${RISCV_TOOLCHAIN}"
-    "--sysroot=${RISCV_SYSROOT}"
-    "-march=rv64gcv"
-    "-mabi=lp64d"
-)
+# 编译器标志
+# -march=rv64gcv: 启用 64位 RISC-V, Graphics(通用), Compressed, Vector 扩展
+# -menable-experimental-extensions: 针对某些旧版 Clang 需要
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=rv64gcv -fopenmp")
 
-add_compile_options(${RVV_FLAGS} -O3 -Wall)
+include_directories(src)
 
-# 显式指定库搜索路径，确保链接器能看到 /usr/lib
-add_link_options(
-    ${RVV_FLAGS}
-    "-fuse-ld=lld"
-    "-L${RISCV_SYSROOT}/usr/lib"
-    "-L${RISCV_SYSROOT}/lib"
-    "-Wl,-rpath-link,${RISCV_SYSROOT}/usr/lib"
-    "-Wl,-rpath-link,${RISCV_SYSROOT}/lib"
-)
-
-add_executable(rvv_test main.cpp)
-target_link_libraries(rvv_test stdc++ m c)
+add_executable(flash_attn src/main.cpp src/kernels.cpp)
+target_link_libraries(flash_attn OpenMP::OpenMP_CXX)
