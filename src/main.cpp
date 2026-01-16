@@ -1,5 +1,7 @@
 #include "tool.h"
 #include <stdio.h>
+#include <string.h>
+
 
 void flash_atten(BufferHBM &hbm) {
     float *Q = hbm.Q, *K = hbm.K, *V = hbm.V, *O = hbm.O;

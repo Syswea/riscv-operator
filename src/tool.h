@@ -1,4 +1,5 @@
 #pragma once
+#include <stdlib.h>
 
 struct BufferHBM {
     int N, d, block_size;
@@ -37,6 +38,8 @@ struct BufferSram {
         free(V_block);
     }
 };
+
+void init(float &m_old, float &m_cur, float &l_old, float &l_cur);
 
 void load_vector(float *vector, float *data, int size, int index);
 void load_block(float *block, float *data, int size, int index, int block_size);
