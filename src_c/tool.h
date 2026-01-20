@@ -1,9 +1,14 @@
 # pragma once
 # include <cmath>
-#include <limits>
-# define INFINITY std::numeric_limits<f32>::infinity()
+# include <cstdlib>
+# include <limits>
+# include <cstdio>
 
-const size_t N = 1024, d = 512, br = 4, bc = 64;
+# ifndef INFINITY
+#  define INFINITY std::numeric_limits<float>::infinity()
+# endif
+
+const size_t N = 8, d = 4, br = 4, bc = 4;
 
 typedef float f32;
 
@@ -57,3 +62,5 @@ void update_sml(f32 *, f32 *, f32 *, f32 *);
 void compute_pv(f32 *, f32 *, f32 *, f32 *, f32 *);
 void scale(f32 *, f32 *);
 void store(f32 *, f32 *, size_t );
+
+void Oprint(f32 *, size_t);

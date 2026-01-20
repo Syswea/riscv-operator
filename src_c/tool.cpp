@@ -77,9 +77,9 @@ void store(f32 *src, f32 *dst, size_t size) {
     }
 }
 
-void fprint(f32 *data, size_t size) {
+void Oprint(f32 *data, size_t size) {
     for (size_t i = 0; i < size; i++) {
-        printf("%.4f ", data[i]);
+        printf("%.6f ", data[i]);
         if ((i + 1) % d == 0) printf("\n");
     }
 }

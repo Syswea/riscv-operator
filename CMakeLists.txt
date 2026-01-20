@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
-project(riscv_flash_attn)
+project(FlashAttention_Demo CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 开启 OpenMP
-find_package(OpenMP REQUIRED)
+# 指向正确的文件夹名称 src_c
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src_c)
 
-# 编译器标志
-# -march=rv64gcv: 启用 64位 RISC-V, Graphics(通用), Compressed, Vector 扩展
-# -menable-experimental-extensions: 针对某些旧版 Clang 需要
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=rv64gcv -fopenmp")
+set(SOURCES 
+    ${SRC_DIR}/main.cpp 
+    ${SRC_DIR}/tool.cpp
+)
 
-include_directories(src)
-
-add_executable(flash_attn src/main.cpp src/kernels.cpp)
-target_link_libraries(flash_attn OpenMP::OpenMP_CXX)
+add_executable(flash_atten_demo ${SOURCES})
+target_include_directories(flash_atten_demo PRIVATE ${SRC_DIR})
+target_link_libraries(flash_atten_demo m)
