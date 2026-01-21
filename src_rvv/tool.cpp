@@ -1,61 +1,121 @@
-#include "tool.h"
+# include "tool.h"
+# include <riscv_vector.h>
 
-// vector = data[idx]
-void load_vector(f32 *vector, f32 *data, size_t d, size_t idx) {
+
+
+void load(f32 *dst, f32 *src, size_t size) {
     size_t vl;
-    for (size_t offset = 0; offset < d; offset += vl) {
-        vl = __riscv_vsetvl_e32m8(d - offset);
-        vfloat32m8_t v = __riscv_vle32_v_f32m8(data + idx * d + offset, vl);
-        __riscv_vse32_v_f32m8(vector + offset, v, vl);
+    vfloat32m8_t x = __riscv_vundefined_f32m8();
+    for (size_t offset = 0; offset < size; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(size - offset);
+        x = __riscv_vle32_v_f32m8(src + offset, vl);
+        __riscv_vse32_v_f32m8(dst + offset, x, vl);
     }
 }
 
-// block = data[idx:idx+block_size]
-void load_block(f32 *block, f32 *data, size_t d, size_t idx, size_t block_size) {
-    for (size_t i = 0; i < block_size; i++) {
-        load_vector(block + i * d, data, d, idx + i);
+void set_init(f32 *O, f32 *m_old, f32 *l) {
+    size_t vl;
+    vfloat32m8_t x = __riscv_vxor_vv_f32m8(x, x, 0); // set to 0
+    for (size_t offset = 0; offset < br * d; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(br * d - offset);
+        __riscv_vse32_v_f32m8(O + offset, x, vl);
+    }
+    for (size_t offset = 0; offset < br; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(br - offset);
+        __riscv_vse32_v_f32m8(l + offset, x, vl);
+    }
+    x = __riscv_vfmv_v_f_f32m8(-INFINITY, 0);
+    for (size_t offset = 0; offset < br; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(br - offset);
+        __riscv_vse32_v_f32m8(m_old + offset, x, vl);
     }
 }
-
-void mul_vf(f32 *vector, f32 mul, size_t len) {
+void compute_qk(f32 *S, f32 *Q, f32 *K) {
     size_t vl;
-    for (size_t offset = 0; offset < len; offset += vl) {
-        vl = __riscv_vsetvl_e32m8(len - offset);
-        vfloat32m8_t v = __riscv_vle32_v_f32m8(vector + offset, vl);
-        v = __riscv_vfmul_vf_f32m8(v, mul, vl);
-        __riscv_vse32_v_f32m8(vector + offset, v, vl);
-    }
-}
-
-void store_vector(f32 *vector, f32 *data, size_t d, size_t idx) {
-    size_t vl;
-    for (size_t offset = 0; offset < d; offset += vl) {
-        vl = __riscv_vsetvl_e32m8(d - offset);
-        vfloat32m8_t v = __riscv_vle32_v_f32m8(vector + offset, vl);
-        __riscv_vse32_v_f32m8(data + idx * d + offset, v, vl);
-    }
-}
-
-void softmax(BufferSram &sram) {
-    size_t block_size = sram.block_size;
-    size_t d = sram.d;
-    f32 *Q = sram.Q_vector;
-    f32 *O = sram.O_vector;
-
-    f32 *K = sram.K_block;
-    f32 *V = sram.V_block;
-    
-    f32 *S = sram.S_vector;
-
-    size_t vl;
-    for (size_t offset = 0; offset < block_size; offset += vl) {
-        vl = __riscv_vsetvl_e32m2(block_size - offset);
-        vfloat32m2_t s = __riscv_vfmv_v_f_f32m2(0.0f, vl);
-        for (size_t i = 0; i < d; i ++ ) {
-            f32 q = Q[i];
-            vfloat32m2_t k = __riscv_vlse32_v_f32m2(K + offset * d + i, sizeof(f32) * d, vl);
-            s = __riscv_vfmacc_vf_f32m2(s, q, s, vl);
+    vfloat32m2_t vs = __riscv_vundefined_f32m2();
+    vfloat32m2_t vk = __riscv_vundefined_f32m2();
+    for (size_t i = 0; i < br; i++) {
+        for (size_t offset = 0; offset < bc; offset += vl) {
+            vl = __riscv_vsetvl_e32m2(bc - offset);
+            vs = __riscv_vxor_vv_f32m2(vs, vs, 0); // set to 0
+            for (size_t j = 0; j < d; j ++ ) {
+                vk = __riscv_vlse32_v_f32m2(K + offset * d + j, d * sizeof(f32), vl);
+                vs = __riscv_vfmacc_vf_f32m2(vs, Q[i * d + j], vk, vl);
+            }
+            vs = __riscv_vfdiv_vf_f32m2(vs, sqrt(d), vl);
+            __riscv_vse32_v_f32m2(S + i * bc + offset, vs, vl);
         }
-        
+    }
+}
+
+void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
+    size_t vl;
+    vfloat32m8_t max_s = __riscv_vundefined_f32m8();
+    vfloat32m8_t vs = __riscv_vundefined_f32m8();
+    vfloat32m8_t pl = __riscv_vundefined_f32m8();
+    vbool4_t mask = __riscv_vundefined_b4();
+    for (size_t offset = 0; offset < br; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(br - offset);
+
+        pl = __riscv_vle32_v_f32m8(l + offset, vl);
+        max_s = __riscv_vle32_v_f32m8(m_old + offset, vl);
+
+        for (size_t j = 0; j < bc; j ++ ) {
+            vs = __riscv_vlse32_v_f32m8(S + offset * bc + j, bc * sizeof(f32), vl);
+            mask = __riscv_vfgt_vv_f32m8_b4(max_s, vs, vl);
+            max_s = __riscv_vmerge_vvm_f32m8(vs, max_s, mask, vl);
+        }
+
+        for (size_t j = 0; j < bc; j ++ ) {
+            vs = __riscv_vlse32_v_f32m8(S + offset * bc + j, bc * sizeof(f32), vl);
+            vs = __riscv_vfsub_vv_f32m8(vs, max_s, vl);
+
+            // exp没有实现
+            vs = __riscv_vexp_v_f32m8(vs, vl);
+
+            pl = __riscv_vfadd_vv_f32m8(pl, vs, vl);
+            __riscv_vse32_v_f32m8(S + offset * bc + j, vs, vl);
+        }
+        __riscv_vse32_v_f32m8(l + offset, pl, vl);
+        __riscv_vse32_v_f32m8(m_new + offset, max_s, vl);
+    }
+
+}
+
+void compute_pv(f32 *O, f32 *S, f32 *V, f32 *m_old, f32 *m_new) {
+    size_t vl;
+    vfloat32m2_t vo = __riscv_vundefined_f32m2();
+    vfloat32m2_t vv = __riscv_vundefined_f32m2();
+    for (size_t i = 0; i < br; i ++ ) {
+        f32 scale = exp(m_old[i] - m_new[i]);
+        for (size_t offset = 0; offset < d; offset += vl) {
+            vl = __riscv_vsetvl_e32m2(d - offset);
+            vo = __riscv_vle32_v_f32m2(O + i * d + offset, vl);
+            vo = __riscv_vfmul_vf_f32m2(vo, scale, vl);
+            for (size_t j = 0; j < bc; j ++ ) {
+                vv = __riscv_vle32_v_f32m2(V + j * d + offset, vl);
+                f32 s = S[i * bc + j];
+                vo = __riscv_vfmacc_vf_f32m2(vo, s, vv, vl);
+            }
+            __riscv_vse32_v_f32m2(O + i * d + offset, vo, vl);
+        }
+        m_old[i] = m_new[i];
+    }
+}
+
+void scale(f32 *O, f32 *l) {
+    size_t vl;
+}
+
+void store(f32 *src, f32 *dst, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        dst[i] = src[i];
+    }
+}
+
+void Oprint(f32 *data, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        printf("%.6f ", data[i]);
+        if ((i + 1) % d == 0) printf("\n");
     }
 }

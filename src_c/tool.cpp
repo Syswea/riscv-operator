@@ -34,8 +34,10 @@ void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
         for (size_t j = 0; j < bc; j++) {
             max_s = fmax(max_s, S[i * bc + j]);
         }
+        
         m_new[i] = fmax(m_old[i], max_s);
         l[i] *= exp(m_old[i] - m_new[i]);
+
         for (size_t j = 0; j < bc; j++) {
             S[i * bc + j] = exp(S[i * bc + j] - m_new[i]);
             l[i] += S[i * bc + j];
