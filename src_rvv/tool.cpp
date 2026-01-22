@@ -1,5 +1,6 @@
 # include "tool.h"
 # include <riscv_vector.h>
+#include <sleef.h>
 
 
 
@@ -15,18 +16,20 @@ void load(f32 *ram, f32 *hbm, size_t size) {
 
 void set_init(f32 *O, f32 *m_old, f32 *l) {
     size_t vl;
-    vfloat32m8_t x = __riscv_vxor_vv_f32m8(x, x, 0); // set to 0
+    vfloat32m8_t x = __riscv_vundefined_f32m8();
     for (size_t offset = 0; offset < br * d; offset += vl) {
         vl = __riscv_vsetvl_e32m8(br * d - offset);
+        x = __riscv_vxor_vv_f32m8(x, x, vl);
         __riscv_vse32_v_f32m8(O + offset, x, vl);
     }
     for (size_t offset = 0; offset < br; offset += vl) {
         vl = __riscv_vsetvl_e32m8(br - offset);
+        x = __riscv_vxor_vv_f32m8(x, x, vl);
         __riscv_vse32_v_f32m8(l + offset, x, vl);
     }
-    x = __riscv_vfmv_v_f_f32m8(-INFINITY, 0);
     for (size_t offset = 0; offset < br; offset += vl) {
         vl = __riscv_vsetvl_e32m8(br - offset);
+        x = __riscv_vfmv_v_f_f32m8(-INFINITY, vl);
         __riscv_vse32_v_f32m8(m_old + offset, x, vl);
     }
 }
@@ -53,6 +56,7 @@ void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
     vfloat32m8_t max_s = __riscv_vundefined_f32m8();
     vfloat32m8_t vs = __riscv_vundefined_f32m8();
     vfloat32m8_t pl = __riscv_vundefined_f32m8();
+    vfloat32m8_t old = __riscv_vundefined_f32m8();
     vbool4_t mask = __riscv_vundefined_b4();
     for (size_t offset = 0; offset < br; offset += vl) {
         vl = __riscv_vsetvl_e32m8(br - offset);
@@ -65,13 +69,20 @@ void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
             mask = __riscv_vfgt_vv_f32m8_b4(max_s, vs, vl);
             max_s = __riscv_vmerge_vvm_f32m8(vs, max_s, mask, vl);
         }
+        // pl * exp(m_old - max_s)
+        old = __riscv_vle32_v_f32m8(m_old + offset, vl);
+        old = __riscv_vfsub_vv_f32m8(old, max_s, vl);
+
+        // exp没有实现
+        old = Sleef_expf_u10rvv_m8(old, vl);
+        pl = __riscv_vfmul_vv_f32m8(pl, old, vl);
 
         for (size_t j = 0; j < bc; j ++ ) {
             vs = __riscv_vlse32_v_f32m8(S + offset * bc + j, bc * sizeof(f32), vl);
             vs = __riscv_vfsub_vv_f32m8(vs, max_s, vl);
 
             // exp没有实现
-            vs = __riscv_vexp_v_f32m8(vs, vl);
+            vs = Sleef_expf_u10rvv_m8(vs, vl);
 
             pl = __riscv_vfadd_vv_f32m8(pl, vs, vl);
             __riscv_vse32_v_f32m8(S + offset * bc + j, vs, vl);
@@ -105,12 +116,15 @@ void compute_pv(f32 *O, f32 *S, f32 *V, f32 *m_old, f32 *m_new) {
 
 void scale(f32 *O, f32 *l) {
     size_t vl;
-    vfloat32m8_t vl = __riscv_vundefined_f32m8();
-    for (size_t offset = 0; offset < br * d; offset += vl) {
-        vl = __riscv_vsetvl_e32m8(br * d - offset);
-        vo = __riscv_vle32_v_f32m8(O + offset, vl);
-        vo = __riscv_vfdiv_vf_f32m8(vo, l[offset / d], vl);
-        __riscv_vse32_v_f32m8(O + offset, vo, vl);
+    vfloat32m8_t vo = __riscv_vundefined_f32m8();
+    for (size_t i = 0; i < br; i ++ ) {
+        f32 pl = l[i];
+        for (size_t offset = 0; offset < d; offset += vl) {
+            vl = __riscv_vsetvl_e32m8(d - offset);
+            vo = __riscv_vle32_v_f32m8(O + i * d + offset, vl);
+            vo = __riscv_vfdiv_vf_f32m8(vo, pl, vl);
+            __riscv_vse32_v_f32m8(O + i * d + offset, vo, vl);
+        }
     }
 }
 
