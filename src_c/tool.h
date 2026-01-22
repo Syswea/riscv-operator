@@ -63,4 +63,4 @@ void compute_pv(f32 *, f32 *, f32 *, f32 *, f32 *);
 void scale(f32 *, f32 *);
 void store(f32 *, f32 *, size_t );
 
-void Oprint(f32 *, size_t);
+void Memprint(f32 *, size_t);

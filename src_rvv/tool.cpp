@@ -3,13 +3,13 @@
 
 
 
-void load(f32 *dst, f32 *src, size_t size) {
+void load(f32 *ram, f32 *hbm, size_t size) {
     size_t vl;
     vfloat32m8_t x = __riscv_vundefined_f32m8();
     for (size_t offset = 0; offset < size; offset += vl) {
         vl = __riscv_vsetvl_e32m8(size - offset);
-        x = __riscv_vle32_v_f32m8(src + offset, vl);
-        __riscv_vse32_v_f32m8(dst + offset, x, vl);
+        x = __riscv_vle32_v_f32m8(hbm + offset, vl);
+        __riscv_vse32_v_f32m8(ram + offset, x, vl);
     }
 }
 
@@ -105,15 +105,26 @@ void compute_pv(f32 *O, f32 *S, f32 *V, f32 *m_old, f32 *m_new) {
 
 void scale(f32 *O, f32 *l) {
     size_t vl;
-}
-
-void store(f32 *src, f32 *dst, size_t size) {
-    for (size_t i = 0; i < size; i++) {
-        dst[i] = src[i];
+    vfloat32m8_t vl = __riscv_vundefined_f32m8();
+    for (size_t offset = 0; offset < br * d; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(br * d - offset);
+        vo = __riscv_vle32_v_f32m8(O + offset, vl);
+        vo = __riscv_vfdiv_vf_f32m8(vo, l[offset / d], vl);
+        __riscv_vse32_v_f32m8(O + offset, vo, vl);
     }
 }
 
-void Oprint(f32 *data, size_t size) {
+void store(f32 *ram, f32 *hbm, size_t size) {
+    size_t vl;
+    vfloat32m8_t x = __riscv_vundefined_f32m8();
+    for (size_t offset = 0; offset < size; offset += vl) {
+        vl = __riscv_vsetvl_e32m8(size - offset);
+        x = __riscv_vle32_v_f32m8(ram + offset, vl);
+        __riscv_vse32_v_f32m8(hbm + offset, x, vl);
+    }
+}
+
+void Memprint(f32 *data, size_t size) {
     for (size_t i = 0; i < size; i++) {
         printf("%.6f ", data[i]);
         if ((i + 1) % d == 0) printf("\n");

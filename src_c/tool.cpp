@@ -1,8 +1,8 @@
 # include "tool.h"
 
-void load(f32 *dst, f32 *src, size_t size) {
+void load(f32 *ram, f32 *hbm, size_t size) {
     for (size_t i = 0; i < size; i++) {
-        dst[i] = src[i];
+        ram[i] = hbm[i];
     }
 }
 
@@ -73,13 +73,13 @@ void scale(f32 *O, f32 *l) {
     }
 }
 
-void store(f32 *src, f32 *dst, size_t size) {
+void store(f32 *ram, f32 *hbm, size_t size) {
     for (size_t i = 0; i < size; i++) {
-        dst[i] = src[i];
+        hbm[i] = ram[i];
     }
 }
 
-void Oprint(f32 *data, size_t size) {
+void Memprint(f32 *data, size_t size) {
     for (size_t i = 0; i < size; i++) {
         printf("%.6f ", data[i]);
         if ((i + 1) % d == 0) printf("\n");

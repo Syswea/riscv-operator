@@ -69,13 +69,13 @@ int main() {
     flash_atten(hbm);
     // 打印结果
     printf("Q:\n");
-    Oprint(hbm.Q, N * d);
+    Memprint(hbm.Q, N * d);
     printf("K:\n");
-    Oprint(hbm.K, N * d);
+    Memprint(hbm.K, N * d);
     printf("V:\n");
-    Oprint(hbm.V, N * d);
+    Memprint(hbm.V, N * d);
     printf("O:\n");
-    Oprint(hbm.O, N * d);
+    Memprint(hbm.O, N * d);
 
     return 0;
 }
