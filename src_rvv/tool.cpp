@@ -149,7 +149,7 @@ void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
         // print_rvv(old, vl);
 
         // exp没有实现
-        old = sexp_f32m8(old, vl);
+        old = vexp_f32m8(old, vl);
         // printf("old:\n");
         // print_rvv(old, vl);
         pl = __riscv_vfmul_vv_f32m8(pl, old, vl);
@@ -161,7 +161,7 @@ void update_sml(f32 *S, f32 *m_old, f32 *m_new, f32 *l) {
             vs = __riscv_vfsub_vv_f32m8(vs, max_s, vl);
 
             // exp没有实现
-            vs = sexp_f32m8(vs, vl);
+            vs = vexp_f32m8(vs, vl);
 
             pl = __riscv_vfadd_vv_f32m8(pl, vs, vl);
             __riscv_vsse32_v_f32m8(S + offset * bc + j, bc * sizeof(f32), vs, vl);
