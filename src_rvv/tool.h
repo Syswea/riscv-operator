@@ -1,8 +1,8 @@
 # pragma once
-# include <cmath>
-# include <cstdlib>
-# include <limits>
-# include <cstdio>
+# include <math.h>
+# include <stdlib.h>
+# include <limits.h>
+# include <stdio.h>
 
 # ifndef INFINITY
 #  define INFINITY std::numeric_limits<float>::infinity()

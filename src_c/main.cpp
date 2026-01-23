@@ -1,12 +1,12 @@
 # include "tool.h"
-# include <random>
-# include <cstring>
+// # include <random>
+# include <string.h>
 
-static double rand01() {
-    static thread_local std::mt19937_64 gen(std::random_device{}());
-    static thread_local std::uniform_real_distribution<double> dist(0.0, 1.0);
-    return dist(gen);
-}
+// static double rand01() {
+//     static thread_local std::mt19937_64 gen(std::random_device{}());
+//     static thread_local std::uniform_real_distribution<double> dist(0.0, 1.0);
+//     return dist(gen);
+// }
 
 void flash_atten(HBM &hbm) {
     size_t N = hbm.N, d = hbm.d;
