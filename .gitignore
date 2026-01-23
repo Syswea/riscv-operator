@@ -3,6 +3,7 @@
 # ========================
 build/
 _build/
+demo*/
 out/
 cmake-build-*/
 
