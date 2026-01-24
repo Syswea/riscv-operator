@@ -1,48 +1,51 @@
 cmake_minimum_required(VERSION 3.10)
 
-# --- 1. 路径与工具链硬编码 (必须在 project 之前) ---
-set(RISCV_TOOLCHAIN_ROOT "/home/syswea/Workspace/tools-for-riscv/toolchain")
+# 1. 定义项目及支持的语言
+project(RISCV_RVV_Project C CXX)
 
-# 指定交叉编译器绝对路径
-set(CMAKE_C_COMPILER "${RISCV_TOOLCHAIN_ROOT}/bin/riscv64-unknown-linux-gnu-clang")
-set(CMAKE_CXX_COMPILER "${RISCV_TOOLCHAIN_ROOT}/bin/riscv64-unknown-linux-gnu-clang++")
+# 2. 路径配置 (请确保此路径正确)
+set(RISCV_TOOLCHAIN_ROOT "/home/syswea/Workspace/tools-for-riscv/toolchain-spike")
+set(RISCV_SYSROOT "${RISCV_TOOLCHAIN_ROOT}/sysroot")
 
-# 指定系统根目录 (Sysroot)
-set(CMAKE_SYSROOT "${RISCV_TOOLCHAIN_ROOT}/sysroot")
+# 3. 编译器三元组定义
+set(TARGET_TRIPLE "riscv64-unknown-linux-gnu")
 
-# 告知 CMake 我们在进行 Linux 交叉编译
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR riscv64)
+# 4. 指定编译器二进制路径
+set(CMAKE_C_COMPILER "${RISCV_TOOLCHAIN_ROOT}/bin/clang")
+set(CMAKE_CXX_COMPILER "${RISCV_TOOLCHAIN_ROOT}/bin/clang++")
 
-# --- 2. 项目声明 ---
-project(flashatten LANGUAGES C CXX)
+# 5. 核心编译标志
+# -march=rv64gcv: 启用向量扩展 (RVV)
+# --sysroot: 必须指向包含标准库头文件和库文件的目录
+set(COMMON_FLAGS "--target=${TARGET_TRIPLE} --sysroot=${RISCV_SYSROOT} -march=rv64gcv -mabi=lp64d")
 
-# --- 3. 编译选项配置 ---
-# 这里指定 RISC-V 特有的架构参数
-# -march=rv64gcv: 启用通用指令集(g)、压缩指令(c)和向量扩展(v)
-# -mabi=lp64d: 64位双精度浮点 ABI
-add_compile_options(
-    -march=rv64gcv 
-    -mabi=lp64d 
-    -mcmodel=medany
-    -O3             # 优化等级
-    -Wall           # 开启警告
-)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} -O3 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -O3 -Wall")
 
-# --- 4. 源文件处理 ---
-# 搜索 src_c 目录下的所有 C 和 C++ 文件
-file(GLOB_RECURSE SOURCES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src_c/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src_c/*.cpp"
-)
+# 6. 链接标志 (解决 __gxx_personality_v0 错误的关键)
+# -static: 静态链接，Spike + pk 环境运行的必要条件
+# -lstdc++: 手动链接 GNU C++ 标准库
+# -lm: 链接数学库
+# -lgcc_s -lgcc_eh: 解决异常处理相关的未定义引用 (personality_v0)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -lstdc++ -lm -lgcc -lgcc_eh")
 
-# --- 5. 生成目标 ---
-add_executable(flashatten ${SOURCES})
+# 7. 源码管理
+# 包含源文件目录的头文件
+include_directories(src_rvv)
 
-# --- 6. 链接配置 ---
-# 如果未来有特定的库文件 (.a 或 .so)，在此处添加
-# target_link_libraries(flashatten PRIVATE ${PROJECT_SOURCE_DIR}/lib/xxx.a)
+# 递归寻找 src_rvv 目录下的所有源文件
+file(GLOB_RECURSE SOURCES "src_rvv/*.cpp" "src_rvv/*.c")
 
-# 打印信息用于确认
-message(STATUS "Compiler: ${CMAKE_C_COMPILER}")
-message(STATUS "Sysroot:  ${CMAKE_SYSROOT}")
+# 8. 生成可执行文件
+if(SOURCES)
+    add_executable(rvv_app ${SOURCES})
+else()
+    message(FATAL_ERROR "No source files found in src_rvv directory!")
+endif()
+
+# 调试信息打印
+message(STATUS "----------------------------------------------------")
+message(STATUS "RISC-V Toolchain Root: ${RISCV_TOOLCHAIN_ROOT}")
+message(STATUS "Using Sysroot: ${RISCV_SYSROOT}")
+message(STATUS "Target Triple: ${TARGET_TRIPLE}")
+message(STATUS "----------------------------------------------------")

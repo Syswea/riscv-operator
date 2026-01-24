@@ -9,7 +9,7 @@ PK="$RISCV_PATH/riscv64-unknown-elf/bin/pk64"
 # --- 输入检查 ---
 if [ -z "$1" ]; then
     echo "使用方法: ./run.sh <你的二进制文件路径>"
-    echo "示例: ./run.sh build/rvv_app"
+    echo "示例: ./run.sh demo_spike/rvv_app"
     exit 1
 fi
 
