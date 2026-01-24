@@ -73,7 +73,6 @@ xcuserdata/
 # ========================
 # Logs and temporary files
 # ========================
-*.log
 *.tmp
 .DS_Store        # macOS
 Thumbs.db        # Windows
