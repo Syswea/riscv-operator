@@ -6,6 +6,7 @@ _build/
 demo*/
 out/
 cmake-build-*/
+AGENTS.md
 
 
 # ========================
